@@ -5,3 +5,4 @@ pandas
 numpy
 shap
 matplotlib
+gunicorn
