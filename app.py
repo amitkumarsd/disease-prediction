@@ -109,5 +109,4 @@ def predict_diabetes():
     return make_prediction(diab_model, diab_scaler, diab_feats, diab_explainer, request.form, "Diabetes")
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, port=5000)
