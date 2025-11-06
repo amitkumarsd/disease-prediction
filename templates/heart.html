@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Heart Disease Predictor + XAI</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #333; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; font-size: 0.9em; color: #555; margin-bottom: 5px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 14px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 25px; font-size: 18px; transition: background 0.2s; }
+        button:hover { background: #0056b3; }
+        
+        #results { margin-top: 30px; padding-top: 25px; border-top: 2px solid #eee; display: none; }
+        .result-card { background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 20px; }
+        .high-risk { color: #dc3545; font-weight: bold; font-size: 1.2em; }
+        .low-risk { color: #28a745; font-weight: bold; font-size: 1.2em; }
+        
+        iframe { width: 100%; height: 150px; border: none; margin-top: 10px; }
+        .red-text { color: #ff0d57; font-weight: bold; }
+        .blue-text { color: #1e88e5; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🩺 Heart Risk Predictor with AI Explanation</h1><p>Welcome, <strong>{{ session.get('user_name', 'Patient') }}</strong>. Let's check your heart health.</p>
+        <form id="predictForm">
+            <div class="form-grid">
+                <div class="form-group"><label>Age</label><input type="number" name="age" value="55" required></div>
+                <div class="form-group"><label>Sex (1=M, 0=F)</label><input type="number" name="sex" value="1" required></div>
+                <div class="form-group"><label>Chest Pain (0-3)</label><input type="number" name="cp" value="0" required></div>
+                <div class="form-group"><label>Resting BP</label><input type="number" name="trestbps" value="130" required></div>
+                <div class="form-group"><label>Cholesterol</label><input type="number" name="chol" value="250" required></div>
+                <div class="form-group"><label>Fasting BS (1=T, 0=F)</label><input type="number" name="fbs" value="0" required></div>
+                <div class="form-group"><label>Resting ECG (0-2)</label><input type="number" name="restecg" value="1" required></div>
+                <div class="form-group"><label>Max Heart Rate</label><input type="number" name="thalach" value="155" required></div>
+                <div class="form-group"><label>Angina (1=Y, 0=N)</label><input type="number" name="exang" value="0" required></div>
+                <div class="form-group"><label>Oldpeak</label><input type="number" step="0.1" name="oldpeak" value="1.0" required></div>
+                <div class="form-group"><label>Slope (0-2)</label><input type="number" name="slope" value="1" required></div>
+                <div class="form-group"><label>Major Vessels (0-3)</label><input type="number" name="ca" value="0" required></div>
+                <div class="form-group"><label>Thal (0-3)</label><input type="number" name="thal" value="2" required></div>
+            </div>
+            <button type="submit">Analyze Risk & Explain</button>
+        </form>
+
+        <div id="results">
+            <h2>Analysis Results</h2>
+            <div class="result-card">
+                <p>Prediction: <span id="res-pred"></span></p>
+                <p>Confidence: <span id="res-conf"></span></p>
+                <p><strong>Recommendation:</strong> <span id="res-rec"></span></p>
+            </div>
+
+            <div>
+                <h3>🔍 AI Explanation (SHAP)</h3>
+                <p>
+                    • <span class="red-text">RED</span> bars pushed risk <strong>HIGHER</strong>.<br>
+                    • <span class="blue-text">BLUE</span> bars pushed risk <strong>LOWER</strong>.
+                </p>
+                <iframe id="shap-iframe"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictForm').onsubmit = async (e) => {
+            e.preventDefault();
+            let btn = e.target.querySelector('button');
+            btn.disabled = true; btn.textContent = 'Analyzing...';
+
+            let formData = new FormData(e.target);
+            try {
+                let response = await fetch('/predict', { method: 'POST', body: formData });
+                let data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    document.getElementById('results').style.display = 'block';
+                    let predSpan = document.getElementById('res-pred');
+                    predSpan.textContent = data.prediction_text;
+                    predSpan.className = data.prediction === 1 ? 'high-risk' : 'low-risk';
+                    document.getElementById('res-conf').textContent = data.confidence;
+                    document.getElementById('res-rec').textContent = data.recommendation;
+                    
+                    // Load the new SHAP plot
+                    document.getElementById('shap-iframe').src = data.shap_plot_url;
+                }
+            } catch (err) { alert('Network error.'); }
+            btn.disabled = false; btn.textContent = 'Analyze Risk & Explain';
+        };
+    </script>
+</body>
+</html>
