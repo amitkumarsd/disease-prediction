@@ -15,4 +15,5 @@ joblib
 numpy
 shap
 matplotlib
+pandas
 
